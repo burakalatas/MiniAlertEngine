@@ -53,11 +53,14 @@ dotnet run --project src/AlertEngine.Console -- data/prices.json data/rules.json
 dotnet test
 ```
 
-> **Note on verification:** this solution was written in a sandbox without NuGet/internet
-> access, so I could not actually run `dotnet build`/`dotnet test` here to confirm everything
-> compiles green. I've reviewed every file carefully and I'm confident in it, but please treat
-> the very first `dotnet build` as the real first compile - if something doesn't line up
-> (a namespace, a using) it should be a one-line fix, not a structural one.
+> **Note on verification:** this was originally written in a sandbox without NuGet/internet
+> access, so it wasn't compiled there. After a real `dotnet test` run, the engine code
+> compiled and ran correctly, but it surfaced 3 test bugs of my own: `Not_InvertsInnerRule`
+> and two nesting tests had asserted the opposite of what `not(range(...))` actually does
+> (see "A quirk I noticed in the sample rules.json" below - I'd apparently made the same
+> mental slip while writing those specific tests that I flagged as a risk in the sample data).
+> The engine logic itself needed no changes; only those three tests' expectations/rule
+> shapes were fixed. All 42 tests pass now.
 
 ## Decisions on the deliberately-undefined cases
 
