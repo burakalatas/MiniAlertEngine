@@ -9,7 +9,9 @@ public class RuleFactoryTests
     [Fact]
     public void Builds_NestedAndOrNot_CorrectlyFromRawShape()
     {
-        // and( or( lt(0), change(50) ), not( range(1200,3200) ) )
+        // and( or( lt(0), change(50) ), not( range(-100,100) ) )
+        // RangeRule matches OUTSIDE its band, so not(range(-100,100)) matches
+        // when the price is INSIDE [-100,100] - see RangeRuleTests/README.
         var raw = new RawRule
         {
             Id = "abnormal-and-uncomfortable",
@@ -29,14 +31,16 @@ public class RuleFactoryTests
                 new()
                 {
                     Type = "not",
-                    Rule = new RawRule { Type = "range", Min = 1200, Max = 3200 },
+                    Rule = new RawRule { Type = "range", Min = -100, Max = 100 },
                 }
             }
         };
 
         var rule = RuleFactory.Build(raw);
 
-        var points = TestData.Hourly(-10); // lt(0) matches, and it's outside [1200,3200]
+        // -10 satisfies lt(0) (first "or" branch) and is inside [-100,100],
+        // so not(range(-100,100)) is also true -> the "and" matches.
+        var points = TestData.Hourly(-10);
         Assert.True(rule.Evaluate(TestData.ContextAt(points, 0)));
     }
 

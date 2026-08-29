@@ -61,18 +61,27 @@ public class CombinatorTests
     [Fact]
     public void Not_InvertsInnerRule()
     {
+        // RangeRule matches when the price is OUTSIDE [min, max] (see RangeRule.cs).
+        // Wrapping it in NotRule therefore matches when the price is INSIDE the band -
+        // this is the same "not(range) = inside" behaviour documented in the README
+        // for the sample rules.json's "outside-comfort-zone" rule.
         var points = TestData.Hourly(1500, 4000);
         var rule = new NotRule(new RangeRule(1200, 3200));
 
-        Assert.False(rule.Evaluate(TestData.ContextAt(points, 0))); // inside zone -> not outside -> false
-        Assert.True(rule.Evaluate(TestData.ContextAt(points, 1)));  // outside zone -> matches "not comfort zone"
+        Assert.True(rule.Evaluate(TestData.ContextAt(points, 0)));  // 1500 is inside [1200,3200] -> not(outside) -> true
+        Assert.False(rule.Evaluate(TestData.ContextAt(points, 1))); // 4000 is outside [1200,3200] -> not(outside) -> false
     }
 
     [Fact]
     public void Combinators_CanNestToArbitraryDepth()
     {
-        // and( or( lt(0), gt(3000) ), not( range(1200,3200) ) )
-        var points = TestData.Hourly(3500); // >3000 and outside [1200,3200]
+        // and( or( lt(0), gt(3000) ), not( range(1200,4000) ) )
+        // NotRule(RangeRule) matches when the price is INSIDE the given band
+        // (RangeRule itself matches OUTSIDE it - see RangeRuleTests / README).
+        // 3500 satisfies gt(3000) via the "or", and is inside [1200,4000] so
+        // not(range(1200,4000)) is also true - this exercises three levels of
+        // nesting (and > or > threshold, and > not > range) in one rule.
+        var points = TestData.Hourly(3500);
         var rule = new AndRule(new IRule[]
         {
             new OrRule(new IRule[]
@@ -80,7 +89,7 @@ public class CombinatorTests
                 new ThresholdRule("lt", 0),
                 new ThresholdRule("gt", 3000),
             }),
-            new NotRule(new RangeRule(1200, 3200)),
+            new NotRule(new RangeRule(1200, 4000)),
         });
 
         Assert.True(rule.Evaluate(TestData.ContextAt(points, 0)));
